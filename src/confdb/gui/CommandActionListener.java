@@ -22,7 +22,7 @@ public class CommandActionListener implements ActionListener
     private static final String cmdParse            = "Parse";
     private static final String cmdJParse           = "JParse";
     private static final String cmdOpen             = "Open";
-    private static final String cmdOpenOldScehma    = "Open Old Schema";
+    private static final String cmdOpenOldScehma    = "Open V2 Schema";
     private static final String cmdClose            = "Close";
     private static final String cmdSave             = "Save";
     private static final String cmdCommentSave      = "Comment&Save";

@@ -28,7 +28,7 @@ public class MenuBar
     private static final String configMenuParse       = "Parse";
     private static final String configMenuJParse      = "JParse";
     private static final String configMenuOpen        = "Open";
-    private static final String configMenuOpenOld     = "Open Old Schema";
+    private static final String configMenuOpenOld     = "Open V2 Schema";
     private static final String configMenuClose       = "Close";
     private static final String configMenuSave        = "Save";
     private static final String configMenuCommentSave = "Comment&Save";

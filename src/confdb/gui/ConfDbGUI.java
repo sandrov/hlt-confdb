@@ -429,7 +429,7 @@ public class ConfDbGUI
     /** create the GUI and show it */
     private static void createAndShowGUI()
     {
-	JFrame frame = new JFrame("ConfDbGUI");
+	JFrame frame = new JFrame("ConfDbGUI v2tov1");
 	ConfDbGUI gui = new ConfDbGUI(frame);
 	
 	int frameWidth =
