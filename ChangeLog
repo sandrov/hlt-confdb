@@ -1,6 +1,6 @@
 2015-05-08 Sandro Ventura <andrea.bocci@cern.ch>
-	* tag V01-08-04
-	* update build environment for lxplus and the `confdb` user
+	* tag V01-08-05
+	* switched "Open Old Schema" to "Open V2 Schema" to allow backporting from ConfDB v2
 
 2015-05-08 Andrea Bocci <andrea.bocci@cern.ch>
 	* tag V01-08-04
