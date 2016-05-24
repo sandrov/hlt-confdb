@@ -778,6 +778,12 @@ class ConfdbLoadParamsfromConfigs:
         ##        
         ##self.VerbosePrint("The last inserted sequenceNb for PSet " + str(psetname) + " component was " + str(nextseqid),2)
         self.localseq = 0
+        
+
+        for rows in self.compar:
+                if (int(rows[1])==psetsid):
+                   self.localseq = self.localseq + 1
+
         ##self.localseq = nextseqid + 1
         self.VerbosePrint("The first parameter for PSet " + str(psetname) + str(psetsid) +" will be inserted with sequenceNb " + str(self.localseq),2)
 
