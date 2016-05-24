@@ -779,7 +779,7 @@ class ConfdbLoadParamsfromConfigs:
         ##self.VerbosePrint("The last inserted sequenceNb for PSet " + str(psetname) + " component was " + str(nextseqid),2)
         self.localseq = 0
         ##self.localseq = nextseqid + 1
-        self.VerbosePrint("The first parameter for PSet " + str(psetname) + " will be inserted with sequenceNb " + str(self.localseq),2)
+        self.VerbosePrint("The first parameter for PSet " + str(psetname) + str(psetsid) +" will be inserted with sequenceNb " + str(self.localseq),2)
 
         for paramname, paramval in params.iteritems():
             if(paramval.configTypeName() == "PSet" or paramval.configTypeName() == "untracked PSet"):
@@ -806,6 +806,11 @@ class ConfdbLoadParamsfromConfigs:
                     del self.nesting[-1]
                     i = i + 1
     
+    def xstr(self,s):
+        if s is None:
+            return ''
+        return str(s)
+
     def FindParamsFromPython(self, thesubsystem, thepackage, mycomponents, componenttype, allowmultiplecfis):
 
         self.nesting = []
@@ -836,19 +841,20 @@ class ConfdbLoadParamsfromConfigs:
             nextseqid = -1
             self.VerbosePrint("SELECT * from "+ componentparamtable +" WHERE "+componentrelassfield+" = " + str(componentsuperid) + " ORDER BY id ",3)
             self.dbcursor.execute("SELECT * from "+ componentparamtable +" WHERE "+componentrelassfield+" = " + str(componentsuperid) + " ORDER BY id ")
-            #self.dbcursor.fetchall()
             parentid=[componentsuperid]
             ppar=componentsuperid
             self.compar=[]
             oldlvl=0
             for rows in self.dbcursor:
-                 #print "Selected existing param",rows
+                 #print rows
+                 #rows[3]=self.xstr(rows[3])
                  lvl=int(rows[6])
                  if (lvl>oldlvl):
                      parentid.append(ppar)
                  elif (lvl<oldlvl):
-                    for dlvl in range(lvl,oldlvl):
+                    for dlvl in range(lvl+1,oldlvl+1):
                        del parentid[lvl+1]
+                 #print "Selected existing param",rows,parentid[lvl]
                  self.compar.append([rows,parentid[lvl]]) 
                  if (lvl==0):
 		#	nextseqid=int(rows[9])
@@ -899,8 +905,7 @@ class ConfdbLoadParamsfromConfigs:
                         self.nesting.append(('VPSet',paramname,vobjectsuperid))
                         self.VerbosePrint("\t\t" + str(paramname) + "\t" + str(paramval.configTypeName()) + "[" + str(len(paramval)) + "]", 1)
                         psetname = str(paramval.configTypeName()) + "[" + str(len(paramval)) + "]"
-                        #sizeofvpset = self.VPSetSize(vobjectsuperid)
-                        sizeofvpset=0
+                        sizeofvpset = self.VPSetSize(vobjectsuperid)
                         if(sizeofvpset == 0):
                             i = 1
                             prevpsetiterseq = self.localseq
@@ -909,7 +914,7 @@ class ConfdbLoadParamsfromConfigs:
                                 vobjectmembersuperid = self.LoadUpdatePSet(paramname,psetname,paramval,vobjectsuperid) 
                                 self.nesting.append(('PSet','VPSet['+str(i)+']',vobjectmembersuperid))
                                 prerecursionseq = self.localseq
-                                self.DoPsetRecursion(vpsetentry,paramname+'['+str(i)+']',vobjectsuperid)
+                                self.DoPsetRecursion(vpsetentry,paramname+'['+str(i)+']',vobjectmembersuperid)
                                 self.localseq = prerecursionseq
                                 del self.nesting[-1]
                                 i = i + 1
@@ -917,6 +922,7 @@ class ConfdbLoadParamsfromConfigs:
                             del self.nesting[-1]
                         else:
                             self.VerbosePrint("\t\t"  + str(paramname) + " already appears with " + str(sizeofvpset) + " entries. Will not add more entries",1)
+                            del self.nesting[-1]
                 if(self.noload == False):
                    starttowrite=0;
                    if (len(self.compar)>comparlen):
@@ -930,11 +936,12 @@ class ConfdbLoadParamsfromConfigs:
                           if (int(self.compar[pn][0][0])>0):
                              #print "db delete where id="+self.compar[pn][0][0]
                              delstr="DELETE FROM "+ self.componentparamtabledict[self.componenttable] +" WHERE id="+str(self.compar[pn][0][0]); 
+                             self.dbcursor.execute(delstr)
 
                        for pn in range(starttowrite,len(self.compar)):
                              #print "db insert where val="+str(self.compar[pn][0][3])
                              insertstr1 = "INSERT INTO "+ self.componentparamtabledict[self.componenttable]+" ("+self.componentrelassfielddict[self.componenttable]+",moetype, paramtype,name, lvl, tracked, ord, value, valuelob) "
-                             insertstr1 = insertstr1 + " VALUES ('"+str(componentsuperid)+"','"+str(self.compar[pn][0][2])+"','"+str(self.compar[pn][0][7])+"','"+str(self.compar[pn][0][3])+"','"+str(self.compar[pn][0][6])+"','"+str(self.compar[pn][0][8])+"','"+str(self.compar[pn][0][9])+"','"+str(self.compar[pn][0][10])+"', :PLOB)"
+                             insertstr1 = insertstr1 + " VALUES ('"+str(componentsuperid)+"','"+str(self.compar[pn][0][2])+"','"+str(self.compar[pn][0][7])+"','"+self.xstr(self.compar[pn][0][3])+"','"+str(self.compar[pn][0][6])+"','"+str(self.compar[pn][0][8])+"','"+str(self.compar[pn][0][9])+"','"+str(self.compar[pn][0][10])+"', :PLOB)"
                              self.dbcursor.execute(insertstr1,PLOB=self.compar[pn][0][11])
 
 
@@ -944,8 +951,6 @@ class ConfdbLoadParamsfromConfigs:
         psetname = "TopLevel"
         name = mycomponents.type_()
 
-        if(name!="PoolDBESSource"):
-            return
         
         self.VerbosePrint("(" + str(componenttype) + " " + name + ") " + thesubsystem + "." + thepackage + "." + name, 1)
         
@@ -999,16 +1004,17 @@ class ConfdbLoadParamsfromConfigs:
         oldlvl=0
         for rows in self.dbcursor:
              #print "Selected existing param",rows
+             #rows[3]=self.xstr(rows[3])
              lvl=int(rows[6])
              if (lvl>oldlvl):
                  parentid.append(ppar)
              elif (lvl<oldlvl):
-                for dlvl in range(lvl,oldlvl):
+                for dlvl in range(lvl+1,oldlvl+1):
                    del parentid[lvl+1]
              self.compar.append([rows,parentid[lvl]])
              if (lvl==0):
             #       nextseqid=int(rows[9])
-                #print "pname",rows[3]," ord",nextseqid
+                #print "pname (single)",rows[3]," ord",nextseqid
                 nextseqid=nextseqid+1
              oldlvl=lvl
              ppar=int(rows[0])
@@ -1043,17 +1049,16 @@ class ConfdbLoadParamsfromConfigs:
                     self.nesting.append(('VPSet',paramname,objectsuperid))
                     self.VerbosePrint("\t\t" + str(paramname) + "\t" + str(paramval.configTypeName()) + "[" + str(len(paramval)) + "]", 1)
                     psetname = str(paramval.configTypeName()) + "[" + str(len(paramval)) + "]"
-                    #sizeofvpset = self.VPSetSize(vobjectsuperid)
-                    sizeofvpset = 0
+                    sizeofvpset = self.VPSetSize(vobjectsuperid)
                     if(sizeofvpset == 0):
                         i = 1
                         prevpsetiterseq = self.localseq
                         for vpsetentry in paramval:
                             self.localseq = i-1
-                            vobjectmembersuperid = self.LoadUpdatePSet(paramname,psetname,paramval,componentsuperid) 
+                            vobjectmembersuperid = self.LoadUpdatePSet(paramname,psetname,paramval,vobjectsuperid) 
                             self.nesting.append(('PSet','VPSet['+str(i)+']',vobjectmembersuperid))
                             prerecursionseq = self.localseq
-                            self.DoPsetRecursion(vpsetentry,paramname+'['+str(i)+']',vobjectmembersuperidsuperid)
+                            self.DoPsetRecursion(vpsetentry,paramname+'['+str(i)+']',vobjectmembersuperid)
                             self.localseq = prerecursionseq
                             del self.nesting[-1]
                             i = i + 1
@@ -1061,6 +1066,28 @@ class ConfdbLoadParamsfromConfigs:
                         del self.nesting[-1]
                     else:
                         self.VerbosePrint("\t\t"  + str(paramname) + " already appears with " + str(sizeofvpset) + " entries. Will not add more entries",1)        
+                        del self.nesting[-1]
+
+                if(self.noload == False):
+                   starttowrite=0;
+                   if (len(self.compar)>comparlen):
+                       pcount=0
+                       for rows in self.compar:
+                          if (int(rows[0][0])<0):			
+                             starttowrite=pcount
+                             break
+                          pcount=pcount+1
+                       for pn in range(starttowrite,len(self.compar)):
+                          if (int(self.compar[pn][0][0])>0):
+                             #print "db delete where id="+self.compar[pn][0][0]
+                             delstr="DELETE FROM "+ self.componentparamtabledict[self.componenttable] +" WHERE id="+str(self.compar[pn][0][0]); 
+                             self.dbcursor.execute(delstr)
+
+                       for pn in range(starttowrite,len(self.compar)):
+                             #print "db insert where val="+str(self.compar[pn][0][3])
+                             insertstr1 = "INSERT INTO "+ self.componentparamtabledict[self.componenttable]+" ("+self.componentrelassfielddict[self.componenttable]+",moetype, paramtype,name, lvl, tracked, ord, value, valuelob) "
+                             insertstr1 = insertstr1 + " VALUES ('"+str(componentsuperid)+"','"+str(self.compar[pn][0][2])+"','"+str(self.compar[pn][0][7])+"','"+self.xstr(self.compar[pn][0][3])+"','"+str(self.compar[pn][0][6])+"','"+str(self.compar[pn][0][8])+"','"+str(self.compar[pn][0][9])+"','"+str(self.compar[pn][0][10])+"', :PLOB)"
+                             self.dbcursor.execute(insertstr1,PLOB=self.compar[pn][0][11])
 
     def FindObjectSuperId(self):
         print "Not yet"
@@ -1201,6 +1228,7 @@ class ConfdbLoadParamsfromConfigs:
         plvl=0
         pfound=0
         for rows in self.compar:
+                #print "param search",rows
                 if (int(rows[0][0])==sid): 
                    idx=pcount
                 if ((pfound) and (int(rows[0][6])>plvl)):
@@ -1213,10 +1241,13 @@ class ConfdbLoadParamsfromConfigs:
                    plvl=int(rows[0][6])
 		if ((int(rows[1])==sid) and (rows[0][3]==parametername)):
                    paramid=int(rows[0][0])
+                   break
                 pcount=pcount+1 
 
+        #print "After search ",parametername," belonging to ",sid," will have ",idx
+
         if(paramid):
-            #print("paramid found",rows[0][3],rows[0][0]
+            #print "paramid found",rows[0][3],rows[0][0]
             returnid = paramid
         else:
             if(parametertype == "ESInputTag"):
@@ -1224,8 +1255,8 @@ class ConfdbLoadParamsfromConfigs:
             
 
             # Check parameter value from old release here
-            # if(self.comparetorelease != ""):                
-            #    unmodifiedparamid = self.CompareParamToOldRelease(parametername,parametervalue,parametertype)
+            if(self.comparetorelease != ""):                
+                unmodifiedparamid = self.CompareParamToOldRelease(parametername,parametervalue,parametertype)
 
 
             if((parametertype.startswith('v')) or (parametertype.startswith('V'))):
@@ -1365,6 +1396,7 @@ class ConfdbLoadParamsfromConfigs:
                    plvl=int(rows[0][6])
                 if ((parametername) and (int(rows[1])==sid) and (rows[0][3]==parametername)):
                    paramid=int(rows[0][0])
+                   break
                 pcount=pcount+1
 
         
@@ -1445,6 +1477,7 @@ class ConfdbLoadParamsfromConfigs:
                    plvl=int(rows[0][6])
                 if ((int(rows[1])==sid) and (rows[0][3]==parametername)):
                    paramid=int(rows[0][0])
+                   break
                 pcount=pcount+1
 
         if(paramid):
@@ -1484,7 +1517,7 @@ class ConfdbLoadParamsfromConfigs:
         for rows in self.compar:
                 if (int(rows[1])==sid):
                    pfound=pfound+1
-                   break
+                   #break
 
 #        selectstr = "SELECT * FROM SuperIdParamSetAssoc WHERE superId = " + str(vpsetsid) + " ORDER BY psetId DESC"
 #        self.VerbosePrint(selectstr, 3)
@@ -1632,17 +1665,18 @@ class ConfdbLoadParamsfromConfigs:
         oldcompar=[]
         oldlvl=0
         for rows in self.dbcursor:
+             #rows[3]=self.xstr(rows[3])
              #print "Selected existing param",rows
              lvl=int(rows[6])
              if (lvl>oldlvl):
                  parentid.append(ppar)
              elif (lvl<oldlvl):
-                for dlvl in range(lvl,oldlvl):
+                for dlvl in range(lvl+1,oldlvl+1):
                    del parentid[lvl+1]
              oldcompar.append([rows,parentid[lvl]])
              if (lvl==0):
             #       nextseqid=int(rows[9])
-                #print "pname",rows[3]," ord",nextseqid
+                #print "pname (sing)",rows[3]," ord",nextseqid
                 nextseqid=nextseqid+1
              oldlvl=lvl
              ppar=int(rows[0])
