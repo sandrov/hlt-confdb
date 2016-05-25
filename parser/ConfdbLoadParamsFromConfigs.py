@@ -83,7 +83,7 @@ def main(argv):
 
     input_verbose = 0
     #    input_dbuser = "CMS_HLT_TEST"
-    input_dbuser = "CMS_HLT_GDR"
+    input_dbuser = "CMS_HLT_GDR_W"
     input_dbpwd = ""
     input_host = "CMSR"
     #    input_host = "CMS_ORCOFF_INT2R"
